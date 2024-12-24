@@ -1,13 +1,15 @@
 const form = document.getElementById('student-form');
 const tableBody = document.querySelector('#records-table tbody');
 let students = JSON.parse(localStorage.getItem('students')) || [];
+let editMode = false;
+let editStudentId = null;
 
-// Load existing records when page loads
+// Load existing records on page load
 document.addEventListener('DOMContentLoaded', () => {
     students.forEach(student => addRowToTable(student));
 });
 
-// Form Submission
+// Form Submission (Add or Edit)
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('name').value.trim();
@@ -16,9 +18,9 @@ form.addEventListener('submit', (e) => {
     const contact = document.getElementById('contact').value.trim();
 
     // Validation with Regex
-    const nameRegex = /^[A-Za-z\s]+$/;  // Accepts only alphabets and spaces
+    const nameRegex = /^[A-Za-z\s]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const contactRegex = /^[0-9]{10}$/; // 10 digits for phone number
+    const contactRegex = /^[0-9]{10}$/;
 
     if (!name || !id || !email || !contact) {
         alert('Please fill out all fields.');
@@ -40,10 +42,26 @@ form.addEventListener('submit', (e) => {
         return;
     }
 
-    const student = { name, id, email, contact };
-    students.push(student);
+    // Check if student exists (in edit mode)
+    const existingIndex = students.findIndex(student => student.id === id);
+
+    if (editMode && editStudentId) {
+        // Update the existing student
+        students[existingIndex] = { name, id, email, contact };
+        editMode = false;
+        editStudentId = null;
+    } else {
+        // Add new student if not in edit mode
+        if (existingIndex !== -1) {
+            alert('Student ID already exists. Use a different ID.');
+            return;
+        }
+        students.push({ name, id, email, contact });
+    }
+
+    // Save to localStorage
     localStorage.setItem('students', JSON.stringify(students));
-    addRowToTable(student);
+    renderTable();
     form.reset();
 });
 
@@ -73,7 +91,9 @@ function editStudent(id) {
     document.getElementById('email').value = student.email;
     document.getElementById('contact').value = student.contact;
 
-    deleteStudent(id);  // Remove to update
+    // Set form in edit mode
+    editMode = true;
+    editStudentId = id;
 }
 
 // Delete Student
